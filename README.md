@@ -48,7 +48,7 @@ A machine learning-powered system for predicting crime hotspots using historical
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/crime-hotspot-prediction.git
+   git clone https://github.com/iamkira-ai/crime-hotspot-prediction.git
    cd crime-hotspot-prediction
    ```
 
