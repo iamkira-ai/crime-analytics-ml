@@ -1,6 +1,5 @@
 # Crime Hotspot Prediction System 🚔🔍
 
-[![CI/CD Pipeline](https://github.com/yourusername/crime-hotspot-prediction/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/yourusername/crime-hotspot-prediction/actions)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://hub.docker.com/)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -48,7 +47,7 @@ A machine learning-powered system for predicting crime hotspots using historical
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/iamkira-ai/crime-hotspot-prediction.git
+   git clone https://github.com/iamkira-ai/crime-analytics-ml.git
    cd crime-hotspot-prediction
    ```
 
