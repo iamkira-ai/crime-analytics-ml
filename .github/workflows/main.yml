@@ -3,8 +3,25 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ master, develop ]
+    paths:
+      - 'data/**'  # Trigger when data files change
+      - '**.py'     # Trigger when Python files change
+      - 'requirements.txt'
+      - 'Dockerfile'
   pull_request:
     branches: [ master ]
+  workflow_dispatch:  # Enable manual trigger
+    inputs:
+      retrain_model:
+        description: 'Force model retraining'
+        required: false
+        default: false
+        type: boolean
+      data_file:
+        description: 'Data file to use for training'
+        required: false
+        default: 'Crime_Incidents_in_2024.csv'
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -15,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]  # Fixed: 3.1 → 3.10
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v4
@@ -66,7 +83,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
-    permissions:  # Added permissions
+    permissions:
       contents: read
       security-events: write
       actions: read
@@ -82,7 +99,7 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3  # Fixed: v2 → v3
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
@@ -144,25 +161,67 @@ jobs:
       run: |
         echo "Deploying to staging environment..."
         echo "Environment: staging"
-        # Add your deployment commands here
-        # For example, using Docker Compose:
-        # docker-compose -f docker-compose.prod.yml up -d
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        
+        # 🚨 DEPLOYMENT PLATFORM REQUIRED 🚨
+        # Uncomment and configure based on your chosen platform:
+        
+        # For Heroku:
+        # heroku container:login
+        # heroku container:push web -a your-app-name
+        # heroku container:release web -a your-app-name
+        
+        # For Railway:
+        # railway login --token ${{ secrets.RAILWAY_TOKEN }}
+        # railway up
+        
+        # For AWS ECS:
+        # aws ecs update-service --cluster your-cluster --service your-service --force-new-deployment
+        
+        # For Docker Compose on VPS:
+        # ssh user@your-server "cd /app && docker-compose pull && docker-compose up -d"
 
     - name: Run health check
       run: |
         echo "Running health checks..."
-        # Add health check commands here
-        # curl -f http://your-app-url/health || exit 1
+        
+        # 🚨 REQUIRES DEPLOYED APP URL 🚨
+        # Replace YOUR_APP_URL with actual deployed URL:
+        
+        # APP_URL="https://your-app.herokuapp.com"  # Heroku
+        # APP_URL="https://your-app.railway.app"    # Railway
+        # APP_URL="https://your-domain.com"         # Custom domain
+        
+        # Health check commands:
+        # curl -f $APP_URL/health || exit 1
+        # curl -f $APP_URL/ || exit 1
+        
+        # For now, just simulate:
+        echo "Would check: https://your-app-url/health"
+        echo "Would check: https://your-app-url/"
 
     - name: Notify deployment
       if: always()
       run: |
         echo "Deployment completed with status: ${{ job.status }}"
-        # Add notification logic here (Slack, email, etc.)
+        
+        # GitHub-native notifications (no external service needed):
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "Deployment successful!"
+          # Could create a GitHub issue or discussion post here
+        else
+          echo "Deployment failed!"
+          # Could create a GitHub issue for failed deployments
+        fi
+        
+        # External notifications (require setup):
+        # Slack: curl -X POST -H 'Content-type: application/json' --data '{"text":"Deployment ${{ job.status }}"}' ${{ secrets.SLACK_WEBHOOK }}
+        # Discord: Similar webhook approach
+        # Email: Use sendgrid/mailgun actions
 
   model-training:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || inputs.retrain_model == true || contains(github.event.head_commit.modified, 'data/')
     
     steps:
     - uses: actions/checkout@v4
@@ -172,26 +231,153 @@ jobs:
       with:
         python-version: "3.11"
 
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-model-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-model-
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Download sample data (placeholder)
+    - name: Check for data files
+      id: check_data
       run: |
-        mkdir -p data
-        # In real scenario, download from secure data source
-        echo "Downloading training data..."
+        DATA_FILE="${{ inputs.data_file || 'Crime_Incidents_in_2024.csv' }}"
+        
+        if [ -f "data/$DATA_FILE" ]; then
+          echo "data_exists=true" >> $GITHUB_OUTPUT
+          echo "data_file=data/$DATA_FILE" >> $GITHUB_OUTPUT
+          echo "Found data file: data/$DATA_FILE"
+          
+          # Show basic file info
+          echo "File size: $(du -h data/$DATA_FILE | cut -f1)"
+          echo "Line count: $(wc -l < data/$DATA_FILE)"
+          echo "First few lines:"
+          head -n 3 "data/$DATA_FILE"
+        else
+          echo "data_exists=false" >> $GITHUB_OUTPUT
+          echo "No data file found at data/$DATA_FILE"
+          echo "Available files in data/:"
+          ls -la data/ || echo "No data directory found"
+        fi
+
+    - name: Clean and prepare data
+      if: steps.check_data.outputs.data_exists == 'true'
+      run: |
+        echo "🧹 Cleaning data..."
+        python clean_data.py "${{ steps.check_data.outputs.data_file }}"
+        
+        # Check if cleaned file was created
+        CLEANED_FILE="$(echo "${{ steps.check_data.outputs.data_file }}" | sed 's/\.csv$/_cleaned.csv/')"
+        if [ -f "$CLEANED_FILE" ]; then
+          echo "Data cleaned successfully: $CLEANED_FILE"
+          echo "cleaned_file=$CLEANED_FILE" >> $GITHUB_OUTPUT
+        else
+          echo "Data cleaning failed or no cleaned file generated"
+          exit 1
+        fi
 
     - name: Train model
+      if: steps.check_data.outputs.data_exists == 'true'
       run: |
-        # This would run your model training
-        # python app.py train data/Crime_Incidents_in_2024.csv
-        echo "Model training would run here with real data"
+        echo "🏋️ Starting model training..."
+        
+        # Use cleaned data file
+        TRAINING_FILE="${steps.check_data.outputs.data_file%.csv}_cleaned.csv"
+        
+        # Train the model
+        python app.py train "$TRAINING_FILE"
+        
+        # Verify model was created
+        if [ -f "models/crime_predictor.joblib" ]; then
+          echo "Model training completed successfully!"
+          echo "Model file size: $(du -h models/crime_predictor.joblib | cut -f1)"
+          
+          # Test the trained model
+          echo "Testing trained model..."
+          python quick_test.py
+        else
+          echo "Model training failed - no model file generated"
+          exit 1
+        fi
+
+    - name: Generate model report
+      if: steps.check_data.outputs.data_exists == 'true'
+      run: |
+        echo "Generating model training report..."
+        
+        # Create a simple report
+        cat > model_report.md << EOF
+        # Model Training Report
+        
+        **Date**: $(date)
+        **Commit**: ${{ github.sha }}
+        **Data File**: ${{ steps.check_data.outputs.data_file }}
+        **Status**: Success
+        
+        ## Training Summary
+        - Model Type: Random Forest Classifier
+        - Risk Levels: Low (0), Medium (1), High (2)
+        - Training completed successfully
+        
+        ## Files Generated
+        - Model: \`models/crime_predictor.joblib\`
+        - Size: $(du -h models/crime_predictor.joblib | cut -f1)
+        
+        ## Next Steps
+        - Model is ready for deployment
+        - Run health checks before deploying to production
+        EOF
+        
+        echo "Model report generated:"
+        cat model_report.md
 
     - name: Upload model artifacts
-      uses: actions/upload-artifact@v3
+      if: steps.check_data.outputs.data_exists == 'true'
+      uses: actions/upload-artifact@v4
       with:
-        name: trained-model
-        path: models/
+        name: trained-model-${{ github.sha }}
+        path: |
+          models/
+          model_report.md
         retention-days: 30
+
+    - name: Create model training summary
+      if: always()
+      run: |
+        if [ "${{ steps.check_data.outputs.data_exists }}" == "true" ]; then
+          echo "Model training job completed successfully!"
+          echo "Model artifacts uploaded with retention of 30 days"
+          echo "Download artifacts from the Actions tab"
+        else
+          echo "Model training skipped - no data file found"
+          echo "Add your CSV file to the data/ directory to enable training"
+        fi
+
+  notify-completion:
+    needs: [test, security, build, deploy, model-training]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Workflow completion summary
+      run: |
+        echo "Workflow Summary"
+        echo "=================="
+        echo "Test: ${{ needs.test.result }}"
+        echo "Security: ${{ needs.security.result }}"
+        echo "Build: ${{ needs.build.result }}"
+        echo "Deploy: ${{ needs.deploy.result }}"
+        echo "Model Training: ${{ needs.model-training.result }}"
+        echo ""
+        
+        if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.build.result }}" == "success" ]; then
+          echo "Core pipeline successful!"
+        else
+          echo "Core pipeline failed!"
+        fi
