@@ -1,4 +1,4 @@
-# Crime Hotspot Prediction System 🚔🔍
+# Crime Hotspot Prediction System
 
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://hub.docker.com/)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -7,7 +7,7 @@
 
 A machine learning-powered system for predicting crime hotspots using historical crime incident data. Built with Python, FastAPI, scikit-learn, and Docker, featuring a complete CI/CD pipeline with GitHub Actions.
 
-## 🌟 Features
+## Features
 
 - **Machine Learning Model**: Random Forest classifier for crime risk prediction
 - **Geospatial Analysis**: DBSCAN clustering for hotspot identification
@@ -18,7 +18,7 @@ A machine learning-powered system for predicting crime hotspots using historical
 - **Model Persistence**: Save and load trained models
 - **Real-time Predictions**: Get crime risk levels for any location and time
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ├── app.py                 # Main application with ML model and API
@@ -35,7 +35,7 @@ A machine learning-powered system for predicting crime hotspots using historical
 └── logs/                 # Application logs
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -91,7 +91,7 @@ A machine learning-powered system for predicting crime hotspots using historical
    python app.py
    ```
 
-## 📊 Usage
+## Usage
 
 ### Training a Model
 
@@ -139,7 +139,7 @@ curl -X POST "http://localhost:8000/predict" \
 - `POST /predict` - Crime risk prediction
 - `GET /docs` - Interactive API documentation
 
-## 🧪 Testing
+## Testing
 
 ### Run Tests Locally
 
@@ -160,7 +160,7 @@ pytest tests/ -v --cov=. --cov-report=html
 docker-compose exec crime-predictor pytest tests/ -v
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -176,7 +176,7 @@ The Random Forest model uses these default parameters:
 
 You can modify these in the `train_model` method of the `CrimePredictor` class.
 
-## 📈 Model Details
+## Model Details
 
 ### Features Used
 
@@ -192,7 +192,7 @@ Risk levels are determined using DBSCAN clustering:
 - **Medium Risk (1)**: Areas with 20-50 crime incidents in cluster  
 - **Low Risk (0)**: Areas with <20 crime incidents or noise points
 
-## 🚀 Deployment
+## Deployment
 
 ### GitHub Actions CI/CD
 
@@ -220,7 +220,7 @@ The project includes a comprehensive CI/CD pipeline that:
    - Prometheus: http://localhost:9090
    - Grafana: http://localhost:3000 (admin/admin)
 
-## 📚 API Documentation
+## API Documentation
 
 ### Prediction Request Schema
 
@@ -246,40 +246,3 @@ The project includes a comprehensive CI/CD pipeline that:
   "risk_description": str         # "Low", "Medium", or "High"
 }
 ```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow PEP 8 style guidelines
-- Add tests for new features
-- Update documentation as needed
-- Ensure all tests pass
-- Use descriptive commit messages
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📞 Support
-
-- Create an issue for bug reports or feature requests
-- Check the [documentation](http://localhost:8000/docs) for API details
-- Review the test suite for usage examples
-
-## 🙏 Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Machine learning with [scikit-learn](https://scikit-learn.org/)
-- Containerization with [Docker](https://www.docker.com/)
-- CI/CD with [GitHub Actions](https://github.com/features/actions)
-
----
-
-**Note**: This system is for educational and research purposes. Crime prediction models should be used responsibly and in conjunction with domain expertise from law enforcement professionals.
