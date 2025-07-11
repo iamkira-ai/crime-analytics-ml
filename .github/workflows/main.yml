@@ -4,26 +4,7 @@ on:
   push:
     branches: [ master, develop ]
   pull_request:
-<<<<<<< HEAD
     branches: [ master ]
-=======
-    branches: [ main ]
-  workflow_dispatch:  # Enables manual trigger button
-    inputs:
-      environment:
-        description: 'Environment to run against'
-        required: false
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
-      skip_tests:
-        description: 'Skip tests'
-        required: false
-        default: false
-        type: boolean
->>>>>>> 65c2c76cf3c1787663b425e0c08339ed2004bc62
 
 env:
   REGISTRY: ghcr.io
@@ -32,7 +13,6 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_tests }}
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]  # Fixed: 3.1 → 3.10
@@ -153,7 +133,7 @@ jobs:
   deploy:
     needs: [test, build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     environment: production
 
     steps:
@@ -163,7 +143,7 @@ jobs:
     - name: Deploy to staging
       run: |
         echo "Deploying to staging environment..."
-        echo "Environment: ${{ inputs.environment || 'staging' }}"
+        echo "Environment: staging"
         # Add your deployment commands here
         # For example, using Docker Compose:
         # docker-compose -f docker-compose.prod.yml up -d
@@ -182,7 +162,7 @@ jobs:
 
   model-training:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     
     steps:
     - uses: actions/checkout@v4
